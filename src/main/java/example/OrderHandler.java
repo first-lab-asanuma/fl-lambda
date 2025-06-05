@@ -8,22 +8,22 @@ import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 import software.amazon.awssdk.services.s3.model.S3Exception;
 
 import java.nio.charset.StandardCharsets;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 
 /**
  * Lambda handler for processing orders and storing receipts in S3.
  */
-public class OrderHandler implements RequestHandler<OrderHandler.Order, String> {
+
+public class OrderHandler implements RequestHandler<Order, String> {
 
     private static final S3Client S3_CLIENT = S3Client.builder().build();
-
-    /**
-     * Record to model the input event.
-     */
-    public record Order(String orderId, double amount, String item) {}
 
     @Override
     public String handleRequest(Order event, Context context) {
         try {
+
+            context.getLogger().log("Request : " + event.toString());
             // Access environment variables
             String bucketName = System.getenv("RECEIPT_BUCKET");
             if (bucketName == null || bucketName.isEmpty()) {
@@ -33,14 +33,16 @@ public class OrderHandler implements RequestHandler<OrderHandler.Order, String> 
             // Create the receipt content and key destination
             String receiptContent = String.format("OrderID: %s\nAmount: $%.2f\nItem: %s",
                     event.orderId(), event.amount(), event.item());
-            String key = "receipts/" + event.orderId() + ".txt";
+            String timestamp = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd_HHmm"));
+            String key = timestamp + "_" + event.orderId() + ".txt";
 
             // Upload the receipt to S3
             uploadReceiptToS3(bucketName, key, receiptContent);
 
             context.getLogger().log("Successfully processed order " + event.orderId() +
                     " and stored receipt in S3 bucket " + bucketName);
-            return "Success";
+
+            return "Success OderID: " + event.orderId();
 
         } catch (Exception e) {
             context.getLogger().log("Failed to process order: " + e.getMessage());
