@@ -33,8 +33,8 @@ public class OrderHandler implements RequestHandler<Order, String> {
             // Create the receipt content and key destination
             String receiptContent = String.format("OrderID: %s\nAmount: $%.2f\nItem: %s",
                     event.orderId(), event.amount(), event.item());
-            String timestamp = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd_HHmm"));
-            String key = timestamp + "_" + event.orderId() + ".txt";
+            DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyyMMdd_HHmmssSSS");
+            String key = "lambda_" + LocalDateTime.now().format(formatter) + "_" + event.orderId() + ".txt";
 
             // Upload the receipt to S3
             uploadReceiptToS3(bucketName, key, receiptContent);
